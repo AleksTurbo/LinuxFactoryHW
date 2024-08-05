@@ -1,4 +1,4 @@
-# #s1e6 Ansible 
+# #s1e6 Ansible
 
 ## Задача 1
 
@@ -8,12 +8,7 @@
 
 ![comon_variables](./img/s1e6-ansbl-comon_variables.PNG "comon_variables")
 
-
-
-
-
-
-## Задача 3: Roles - swaptrasher 
+## Задача 3: Roles - swaptrasher
 
 ![roles_swaptrasher](./img/s1e6-ansbl-roles_swaptrasher.PNG "roles_swaptrasher")
 
