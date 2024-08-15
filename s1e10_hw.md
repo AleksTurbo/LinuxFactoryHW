@@ -1,9 +1,7 @@
 # #s1e10 DOCKER
 
-## докер регистри
+## докер регистри - Kaniko
 
-![gitlab-img-push](./img/s1e10-docker-gitlab-img-push.PNG "gitlab-img-push")
+![docker-gitlab-registry](./img/s1e11-docker-gitlab-registry.PNG "docker-gitlab-registry")
 
-![docker-gitlab-registry](./img/s1e10-docker-gitlab-registry.PNG "docker-gitlab-registry")
-
-![gitlab-repo](./img/s1e10-docker-gitlab-repo.PNG "gitlab-repo")
+![docker-kaniko_build](./img/s1e11-docker-kaniko_build.PNG "docker-kaniko_build")
