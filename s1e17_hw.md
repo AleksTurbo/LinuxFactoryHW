@@ -10,13 +10,13 @@ P.S. - нумерацию ранеров поменял, чтобы с пред�
 
 ```yml
 - if: '$CI_COMMIT_REF_NAME == "develop"'
-      variables:
-        RUNNER_TAG: "lf-runner1"
-        RUNNER_SHELL_TAG: "lf-runner-shell1"
-    - if: '$CI_COMMIT_REF_NAME == "main"'
-      variables:
-        RUNNER_TAG: "lf-runner2"
-        RUNNER_SHELL_TAG: "lf-runner-shell2"
+  variables:
+    RUNNER_TAG: "lf-runner1"
+    RUNNER_SHELL_TAG: "lf-runner-shell1"
+- if: '$CI_COMMIT_REF_NAME == "main"'
+  variables:
+    RUNNER_TAG: "lf-runner2"
+    RUNNER_SHELL_TAG: "lf-runner-shell2"
 ```
 
 ## Проверяем работоспособность
