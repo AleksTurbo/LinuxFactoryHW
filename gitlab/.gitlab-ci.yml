@@ -7,6 +7,25 @@ variables:
   RUNNER_SHELL_TAG: "If-shell-common"
   IMAGE_NAME: "registry.gitlab.com/aleksturbo/$CI_PROJECT_NAME:${CI_COMMIT_REF_NAME}_${CI_COMMIT_SHORT_SHA}"
   LATEST_IMAGE_NAME: "registry.gitlab.com/aleksturbo/$CI_PROJECT_NAME"
+  ENVIRONMENT:
+    value: "N/A"
+    options:
+    - "N/A"
+    - "STAGE"
+    - "PRODUCTION"
+    description: "Deployment environment"
+
+.stage_server:
+  &stage_server
+    RUNNER_SHELL_TAG: "lf-runner-shell1"
+    WEB_NODE: "192.168.153.113"
+    DB_NODE: "192.168.153.113"
+
+.production_server:
+  &production_server
+    RUNNER_SHELL_TAG: "lf-runner-shell2"
+    WEB_NODE: "192.168.153.112"
+    DB_NODE: "192.168.153.112"
 
 workflow:
   rules:
@@ -18,9 +37,16 @@ workflow:
       variables:
         RUNNER_TAG: "lf-runner2"
         RUNNER_SHELL_TAG: "lf-runner-shell2"
-
+    - if: '$ENVIRONMENT == "STAGE"'
+      variables:
+        RUNNER_SHELL_TAG: "lf-runner-shell1"
+    - if: '$ENVIRONMENT == "PRODUCTION"'
+      variables:
+        RUNNER_SHELL_TAG: "lf-runner-shell2"
+        
 build_images:
   stage: build
+  when: manual
   image:
     name: gcr.io/kaniko-project/executor:v1.23.2-debug
     entrypoint: [""]
@@ -44,16 +70,26 @@ build_images:
 
 deploy:
   stage: deploy
+  when: manual
   script:
+    - echo $ENVIRONMENT
+    - echo "build & deploy here"
+    - echo $RUNNER_SHELL_TAG
+    - echo $RUNNER_SHELL2_TAG
+    - echo $WEB_NODE
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     - docker pull $IMAGE_NAME
     - docker stop my.app || true
     - docker rm my.app || true
     - docker run -d -p 5000:5000 --name my.app $IMAGE_NAME
+  rules:
+    - if: '$ENVIRONMENT == "STAGE"'
+      variables:
+        <<: *stage_server
+    - if: '$ENVIRONMENT == "PRODUCTION"'
+      variables:
+        <<: *production_server
   tags:
-    - $RUNNER_SHELL_TAG 
+    - $RUNNER_SHELL_TAG
   environment:
     name: $CI_COMMIT_REF_NAME
-  only:
-    - develop
-    - main
