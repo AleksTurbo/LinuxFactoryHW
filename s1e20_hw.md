@@ -4,15 +4,13 @@
 
 [.gitlab-ci.yml:](./gitlab/.gitlab-ci.yml)
 
-![GitLab-devops-pipeline](./img/s1e19-GitLab-devops-pipeline.PNG "GitLab-devops-pipeline")
+![save-artifacts](./img/s1e20-GitLab-pipeline-save-artifacts.PNG "save-artifacts")
 
-## Инклюдим
+## Артифакты на хосте и в докере
 
-![pipeline-include](./img/s1e19-GitLab-pipeline-include.PNG "pipeline-include")
+![artifacts-in-docker](./img/s1e20-GitLab-artifacts-in-docker.PNG "artifacts-in-docker")
 
-## Проверяем
-
-![pipeline-run](./img/s1e19-GitLab-pipeline-run.PNG "pipeline-run")
+![artifacts-in-folder](./img/s1e20-GitLab-artifacts-in-folder.PNG "artifacts-in-folder")
 
 ## Links
 
