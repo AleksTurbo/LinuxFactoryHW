@@ -1,12 +1,16 @@
 stages:
   - build
   - deploy
+  - artifacts_download
 
 variables:
+  USER_NAME: "aleksturbo"
+  TELEGRAMM_CHAT_ID: "-153192090"
   RUNNER_TAG: "If-common"
   RUNNER_SHELL_TAG: "If-shell-common"
   IMAGE_NAME: "registry.gitlab.com/aleksturbo/$CI_PROJECT_NAME:${CI_COMMIT_REF_NAME}_${CI_COMMIT_SHORT_SHA}"
   LATEST_IMAGE_NAME: "registry.gitlab.com/aleksturbo/$CI_PROJECT_NAME"
+  FF_ENABLE_JOB_CLEANUP: 0
   ENVIRONMENT:
     value: "N/A"
     options:
@@ -43,7 +47,7 @@ workflow:
     - if: '$ENVIRONMENT == "PRODUCTION"'
       variables:
         RUNNER_SHELL_TAG: "lf-runner-shell2"
-        
+
 build_images:
   stage: build
   when: manual
@@ -52,48 +56,48 @@ build_images:
     entrypoint: [""]
   script:
     - mkdir docs
-    - echo $CI_REGISTRY >> docs/build.log
-    - echo $CI_REGISTRY_USER >> docs/build.log
-    - echo $CI_REGISTRY_PASSWORD >> docs/build.log
-    - echo $CI_PROJECT_NAME >> docs/build.log
-    - echo $MY_VAR > docs/build.log
-    - echo $CI_COMMIT_SHORT_SHA >> docs/build.log
-    - echo $CI_COMMIT_REF_NAME >> docs/build.log
-    - echo $CI_COMMIT_TAG >> docs/build.log
-    - pwd >> docs/build.log
-    - mkdir -p /kaniko/.docker >> docs/build.log
-    - echo "Build completed" >> docs/build.txt
-    - ls -la >> docs/build.log
+    - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json >> docs/build.log
-    - /kaniko/executor --cache --cache-repo $CI_REGISTRY_IMAGE --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $IMAGE_NAME >> docs/build.log
-    - /kaniko/executor --cache --cache-repo $CI_REGISTRY_IMAGE --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $LATEST_IMAGE_NAME >> docs/build.log
-    # - curl --location --output artifacts.zip "https://gitlab.com/api/v4/projects/1/jobs/artifacts/main/download?job=test&job_token=$CI_JOB_TOKEN"
+    - echo "Build completed"
+    - echo $CI_JOB_ID
+    - echo "JOB_BUILD_ID=${CI_JOB_ID}" >> variables.env
+    - /kaniko/executor --cache --cache-repo $CI_REGISTRY_IMAGE --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --destination $IMAGE_NAME --destination $LATEST_IMAGE_NAME >> docs/build.log
   tags:
     - $RUNNER_TAG
-  variables:
-    FF_ENABLE_JOB_CLEANUP: "false"
   artifacts:
     paths:
       - docs/
     expire_in: 1 week
-    reports:
-      dotenv: build.env
 
 deploy:
   stage: deploy
-  when: manual
+  #when: manual
   script:
-    - echo $ENVIRONMENT
-    - echo "build & deploy here"
-    - echo $RUNNER_SHELL_TAG
-    - echo $RUNNER_SHELL2_TAG
-    - echo $WEB_NODE
-    - cat docs/build.txt
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     - docker pull $IMAGE_NAME
     - docker stop my.app || true
     - docker rm my.app || true
     - docker run -d -p 5000:5000 --name my.app $IMAGE_NAME
+    - echo "ENVIRONMENT=${ENVIRONMENT}" >> docs/deploy.env
+    - echo "USER_NAME=${USER_NAME}" >> docs/deploy.env
+    - USER_ID=$(curl --header PRIVATE-TOKEN:$TOKEN https://gitlab.com/api/v4/users?username=$USER_NAME | jq '. [] .id')
+    - echo "USER_ID=${USER_ID}" >> docs/deploy.env
+    - PROJECT_ID=$(curl --header "PRIVATE-TOKEN:$TOKEN" "https://gitlab.com/api/v4/users/$USER_ID/projects" | jq '. [] | select(.path == "pythoner") .id')
+    - echo "PROJECT_ID=${PROJECT_ID}" >> docs/deploy.env
+    - PIPELINE_ID=$(curl --header "PRIVATE-TOKEN:$TOKEN" "https://gitlab.com/api/v4/projects/$PROJECT_ID/pipelines" | jq '.[0] | .id')
+    - echo "PIPELINE_ID=${PIPELINE_ID}" >> docs/deploy.env
+    - echo "PIPELINE_ID=${PIPELINE_ID}"
+    - JOB_DEPLOY_ID=$(curl -s --header "PRIVATE-TOKEN:$TOKEN" "https://gitlab.com/api/v4/projects/$PROJECT_ID/pipelines/$PIPELINE_ID/jobs" | jq '.[] | select(.name == "'deploy'") | .id')
+    - JOB_BUILD_ID=$(curl -s --header "PRIVATE-TOKEN:$TOKEN" "https://gitlab.com/api/v4/projects/$PROJECT_ID/pipelines/$PIPELINE_ID/jobs" | jq '.[] | select(.name == "'build_images'") | .id')
+    - echo "JOB_BUILD_ID=${JOB_BUILD_ID}" >> docs/deploy.env
+    - echo $JOB_BUILD_ID
+    - echo "JOB_DEPLOY_ID=${JOB_DEPLOY_ID}" >> docs/deploy.env
+    - echo $JOB_DEPLOY_ID
+    - echo $PROJECT_ID
+    - echo $CI_JOB_ID
+    - echo "JOB_ARTIFACTS_DNLD_ID=${CI_JOB_ID}" >> docs/deploy.env
+    - echo "PROJECT_ID=${PROJECT_ID}" >> variables.env
+    - echo "JOB_ARTIFACTS_DNLD_ID=${JOB_ARTIFACTS_DNLD_ID}" >> variables.env
   rules:
     - if: '$ENVIRONMENT == "STAGE"'
       variables:
@@ -103,7 +107,42 @@ deploy:
         <<: *production_server
   dependencies:
     - build_images
+  needs:
+    - build_images
   tags:
     - $RUNNER_SHELL_TAG
   environment:
     name: $CI_COMMIT_REF_NAME
+  variables:
+    FF_ENABLE_JOB_CLEANUP: 0
+  artifacts:
+    paths:
+      - docs/
+    expire_in: 1 week
+
+artifacts_download:
+  stage: artifacts_download
+  #when: manual
+  script:
+    - USER_ID=$(curl --header PRIVATE-TOKEN:$TOKEN https://gitlab.com/api/v4/users?username=$USER_NAME | jq '. [] .id')
+    - PROJECT_ID=$(curl --header "PRIVATE-TOKEN:$TOKEN" "https://gitlab.com/api/v4/users/$USER_ID/projects" | jq '. [] | select(.path == "pythoner") .id')
+    - PIPELINE_ID=$(curl --header "PRIVATE-TOKEN:$TOKEN" "https://gitlab.com/api/v4/projects/$PROJECT_ID/pipelines" | jq '.[0] | .id')
+    - JOB_DEPLOY_ID=$(curl -s --header "PRIVATE-TOKEN:$TOKEN" "https://gitlab.com/api/v4/projects/$PROJECT_ID/pipelines/$PIPELINE_ID/jobs" | jq '.[] | select(.name == "'deploy'") | .id')
+    - echo $PROJECT_ID
+    - echo $JOB_DEPLOY_ID
+    - 'curl --location --output artifacts.zip --header "PRIVATE-TOKEN:$TOKEN" "https://gitlab.com/api/v4/projects/$PROJECT_ID/jobs/$JOB_DEPLOY_ID/artifacts"'
+    - 'curl -F document=@artifacts.zip -F chat_id=${TELEGRAMM_CHAT_ID} https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendDocument'
+  dependencies:
+    - deploy
+  needs:
+    - deploy
+  tags:
+    - $RUNNER_SHELL_TAG
+  environment:
+    name: $CI_COMMIT_REF_NAME
+  variables:
+    FF_ENABLE_JOB_CLEANUP: 0
+  artifacts:
+    paths:
+      - docs/
+    expire_in: 1 week
