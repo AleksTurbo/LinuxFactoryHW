@@ -1,4 +1,4 @@
-# #s1e20 GitLAb API
+# #s2e1 GitLAb API
 
 ## Дорабатываем Pipeline
 
