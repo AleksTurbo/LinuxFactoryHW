@@ -1,0 +1,74 @@
+stages:
+  - setup
+
+variables:
+  GROUPS:
+    value: "N/A"
+    options:
+    - "N/A"
+    - "prod"
+    - "stage"
+    description: "GROUPS HOSTS"
+  TAGS:
+    value: "N/A"
+    options:
+    - "N/A"
+    - "ssl"
+    - "no ssl"
+    description: "TAGS"
+
+.stage_server:
+  &stage_server
+    RUNNER_SHELL_TAG: "serv_runner"
+    RUNNER_TAG: "serv_docker_runner"
+    WEB_NODE: "192.168.153.113"
+    DB_NODE: "192.168.153.113"
+    INVENTORYINI: "stage.ini"
+    PLAYBOOK: "stage.yml"
+
+.production_server:
+  &production_server
+    RUNNER_SHELL_TAG: "serv_runner"
+    RUNNER_TAG: "serv_docker_runner"
+    WEB_NODE: "192.168.153.112"
+    DB_NODE: "192.168.153.112"
+    INVENTORYINI: "production.ini"
+    PLAYBOOK: "production.yml"
+
+workflow:
+  rules:
+    - if: '$GROUPS == "stage"'
+      variables:
+        <<: *stage_server
+    - if: '$GROUPS == "prod"'
+      variables:
+        <<: *production_server
+
+run_playbooks:
+  stage: setup
+  when: manual
+  variables:
+    SECURE_FILES_DOWNLOAD_PATH: '~/.ssh/'
+  image:
+    name: "cytopia/ansible:2.12-tools"
+  script:
+    - pwd
+    - echo $GROUPS
+    - echo $TAGS
+    - export ANSIBLE_CONFIG=./ansible.cfg
+    - touch vault.passwd
+    - echo $vault_passwd > vault.passwd
+    - git --version
+    - mkdir ~/.ssh
+    - ansible-vault view yek_for_gtlb > ~/.ssh/id_rsa
+    - chmod 700 ~/.ssh
+    - chmod 600 ~/.ssh/id_rsa
+    - ls -la ~/.ssh/id_rsa
+    - head ~/.ssh/id_rsa
+    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+    - git ls-remote git@github.com:AleksTurbo/ansible-roles.git -h refs/heads/main
+    - ansible-playbook -i inventory/$INVENTORYINI init.yml
+    - ls -la
+    - ansible-playbook -i inventory/$INVENTORYINI $PLAYBOOK
+  tags:
+    - $RUNNER_TAG
