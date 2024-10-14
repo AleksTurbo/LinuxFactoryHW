@@ -1,0 +1,59 @@
+stages:
+  - setup
+
+variables:
+  GROUPS:
+    value: "N/A"
+    options:
+    - "N/A"
+    - "prod"
+    - "stage"
+    description: "GROUPS HOSTS"
+  TAGS:
+    value: "N/A"
+    options:
+    - "N/A"
+    - "ssl"
+    - "no ssl"
+    description: "TAGS"
+  RUNNER_SHELL_TAG: "serv_runner"
+  RUNNER_TAG: "serv_docker_runner"
+  INVENTORYINI: "inventory.ini"
+  PLAYBOOK: "servers.yml"
+
+run_playbooks:
+  stage: setup
+  when: manual
+  variables:
+    SECURE_FILES_DOWNLOAD_PATH: '~/.ssh/'
+  image:
+    name: "cytopia/ansible:2.12-tools"
+  script:
+    - pwd
+    - echo $GROUPS
+    - echo $TAGS
+    - export ANSIBLE_CONFIG=./ansible.cfg
+    - touch vault.passwd
+    - echo $vault_passwd > vault.passwd
+    - git --version
+    - mkdir ~/.ssh
+    - ansible-vault view yek_for_gtlb > ~/.ssh/id_rsa
+    - chmod 700 ~/.ssh
+    - chmod 600 ~/.ssh/id_rsa
+    - ls -la ~/.ssh/id_rsa
+    - head ~/.ssh/id_rsa
+    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+    - git ls-remote git@github.com:AleksTurbo/ansible-roles.git -h refs/heads/main
+    - ansible-playbook -i inventory/$INVENTORYINI init.yml
+    - ls -la
+    - pip3 install hvac
+    - pip3 install "cython<3.0.0" wheel
+    - pip3 install "pyyaml==5.4.1" --no-build-isolation
+    - pip3 install docker
+    - pip3 install docker-compose
+    - ansible-galaxy collection install community.docker
+    - python3 -V
+    - pip3 list -format = column
+    - ansible-playbook -i inventory/$INVENTORYINI $PLAYBOOK -e "TARGET=$GROUPS"
+  tags:
+    - $RUNNER_TAG
