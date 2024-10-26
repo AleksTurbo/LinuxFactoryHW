@@ -33,4 +33,4 @@
 
 [GitLAB pythoner REPO:](https://gitlab.com/AleksTurbo/pythoner/)
 
-[GitLAB devops-pipelines ](https://gitlab.com/AleksTurbo/devops-pipelines/)
+[GitLAB devops-pipelines](https://gitlab.com/AleksTurbo/devops-pipelines/)
