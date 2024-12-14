@@ -16,7 +16,7 @@
 
 [node_exporter:](https://github.com/AleksTurbo/ansible-roles/tree/main/node_exporter)
 
-[node_exporter:](https://github.com/AleksTurbo/ansible-roles/tree/main/nginx_exporter)
+[nginx_exporter:](https://github.com/AleksTurbo/ansible-roles/tree/main/nginx_exporter)
 
 [INFRA repo:](https://github.com/AleksTurbo/infra)
 
